@@ -1,0 +1,14 @@
+[Unit]
+Description=Reverse SSH Tunnel for Document Translator Orchestrator
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=YOUR_LOCAL_USER
+ExecStart=/usr/bin/bash /path/to/microservices/infra/scripts/start_tunnel.sh
+Restart=always
+RestartSec=10
+Environment=HOME=/home/YOUR_LOCAL_USER
+
+[Install]
+WantedBy=multi-user.target

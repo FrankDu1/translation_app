@@ -1,0 +1,63 @@
+version: "3.9"
+services:
+  orchestrator:
+    build: ../services/orchestrator
+    container_name: orchestrator
+    env_file: ../.env
+    environment:
+      - OCR_URL=${OCR_URL}
+      - TRANSLATE_URL=${TRANSLATE_URL}
+      - OLLAMA_HOST=${OLLAMA_HOST}
+      - DEBUG=${DEBUG}
+    ports:
+      - "8000:8000"
+    depends_on:
+      - ocr
+      - nmt
+    volumes:
+      - ../uploads:/app/uploads
+      - ../downloads:/app/downloads
+    networks: [core]
+
+  ocr:
+    build: ../services/ocr_service
+    container_name: ocr
+    environment:
+      - DEBUG=${DEBUG}
+      - LOG_LEVEL=${LOG_LEVEL}
+    ports:
+      - "7010:7010"
+    # 如果需要GPU支持OCR模型
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+    networks: [core]
+
+  nmt:
+    build: ../services/nmt_service
+    container_name: nmt
+    environment:
+      - USE_OLLAMA=true
+      - OLLAMA_HOST=${OLLAMA_HOST}
+      - OLLAMA_MODEL=${OLLAMA_MODEL}
+      - DEBUG=${DEBUG}
+    ports:
+      - "7020:7020"
+    # Ollama通过host.docker.internal访问宿主机
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks: [core]
+
+networks:
+  core:
+    driver: bridge
+
+volumes:
+  uploads:
+    driver: local
+  downloads:
+    driver: local

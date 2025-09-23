@@ -1,0 +1,10 @@
+fastapi==0.110.0
+uvicorn[standard]==0.29.0
+pillow==10.2.0
+opencv-python==4.9.0.80
+numpy==1.26.0
+# OCR引擎（按需安装）
+# paddleocr==2.7.3
+# paddlepaddle==2.6.0
+easyocr==1.7.0
+# pytesseract==0.3.10

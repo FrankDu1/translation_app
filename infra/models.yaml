@@ -1,0 +1,45 @@
+llm:
+  post_edit:
+    name: qwen-7b-postedit
+    version: "1.0.0"
+    endpoint: http://llm:8000/v1
+    description: "Qwen模型用于翻译后编辑和风格优化"
+  
+  ollama:
+    name: llama3-7b
+    version: "1.0.0" 
+    endpoint: http://host.docker.internal:11434
+    model: "llama3:7b"
+    description: "当前使用的Ollama模型"
+
+nmt:
+  primary:
+    name: nllb-ct2
+    version: "1.3.0"
+    endpoint: http://nmt:7020/translate
+    description: "NLLB CTranslate2翻译引擎（待实现）"
+  
+  ollama_fallback:
+    name: ollama-translate
+    version: "1.0.0"
+    endpoint: http://nmt:7020/translate
+    description: "Ollama翻译占位服务（当前实现）"
+
+ocr:
+  general:
+    name: paddleocr
+    version: "4.1.0"
+    endpoint: http://ocr:7010/ocr
+    description: "PaddleOCR文字识别服务"
+  
+  easyocr:
+    name: easyocr
+    version: "1.7.0"
+    endpoint: http://ocr:7010/ocr
+    description: "EasyOCR备用识别引擎"
+
+# 服务健康检查端点
+health_checks:
+  orchestrator: http://orchestrator:8000/health
+  ocr: http://ocr:7010/health  
+  nmt: http://nmt:7020/health

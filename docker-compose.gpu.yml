@@ -1,0 +1,220 @@
+version: '3.8'
+
+# GPU机器专用的Docker Compose配置
+# 包含OCR、NMT、Vision等AI模型服务
+
+services:
+  # OCR服务 - 文字识别
+  ocr-service:
+    build:
+      context: ./services/ocr-service
+      dockerfile: Dockerfile
+    container_name: ocr-service
+    ports:
+      - "7010:7010"
+    environment:
+      - CUDA_VISIBLE_DEVICES=0
+      - PYTHONPATH=/app
+      - OCR_ENGINES=easyocr,paddleocr
+      - MODEL_CACHE_DIR=/app/models
+      - MAX_BATCH_SIZE=8
+      - WORKER_TIMEOUT=300
+    volumes:
+      - ./models/ocr:/app/models
+      - ./temp:/app/temp
+      - ./logs:/app/logs
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+        limits:
+          memory: 8G
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7010/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - gpu-services
+
+  # 翻译服务 - 机器翻译
+  nmt-service:
+    build:
+      context: ./services/nmt-service
+      dockerfile: Dockerfile
+    container_name: nmt-service
+    ports:
+      - "7020:7020"
+    environment:
+      - CUDA_VISIBLE_DEVICES=0
+      - OLLAMA_HOST=http://ollama:11434
+      - OLLAMA_MODELS=llama3.2:latest,qwen2.5:latest
+      - HF_HOME=/app/models/huggingface
+      - MAX_BATCH_SIZE=16
+      - TRANSLATION_TIMEOUT=180
+    volumes:
+      - ./models/nmt:/app/models
+      - ./temp:/app/temp
+      - ./logs:/app/logs
+      - ollama_data:/root/.ollama
+    depends_on:
+      ollama:
+        condition: service_healthy
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+        limits:
+          memory: 12G
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7020/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - gpu-services
+
+  # Ollama服务 - LLM推理引擎
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    ports:
+      - "11434:11434"
+    environment:
+      - CUDA_VISIBLE_DEVICES=0
+      - OLLAMA_NUM_PARALLEL=2
+      - OLLAMA_MAX_LOADED_MODELS=2
+      - OLLAMA_FLASH_ATTENTION=1
+    volumes:
+      - ollama_data:/root/.ollama
+      - ./temp:/tmp/ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+        limits:
+          memory: 16G
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+    networks:
+      - gpu-services
+
+  # 图像处理服务 (可选)
+  vision-service:
+    build:
+      context: ./services/vision-service
+      dockerfile: Dockerfile
+    container_name: vision-service
+    ports:
+      - "7030:7030"
+    environment:
+      - CUDA_VISIBLE_DEVICES=0
+      - HF_HOME=/app/models/huggingface
+      - DIFFUSERS_CACHE=/app/models/diffusers
+      - INPAINTING_MODEL=runwayml/stable-diffusion-inpainting
+    volumes:
+      - ./models/vision:/app/models
+      - ./temp:/app/temp
+      - ./logs:/app/logs
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+        limits:
+          memory: 12G
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7030/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 180s
+    networks:
+      - gpu-services
+    profiles:
+      - full  # 可选服务，使用 --profile full 启动
+
+  # 模型下载和初始化服务
+  model-downloader:
+    build:
+      context: ./scripts
+      dockerfile: Dockerfile.downloader
+    container_name: model-downloader
+    environment:
+      - HF_HOME=/app/models/huggingface
+      - MODEL_DIR=/app/models
+    volumes:
+      - ./models:/app/models
+      - ollama_data:/root/.ollama
+    depends_on:
+      - ollama
+    restart: "no"
+    networks:
+      - gpu-services
+    profiles:
+      - init  # 初始化服务，使用 --profile init 运行
+
+  # GPU监控服务
+  gpu-monitor:
+    image: nvidia/dcgm-exporter:3.1.7-3.1.4-ubuntu20.04
+    container_name: gpu-monitor
+    ports:
+      - "9400:9400"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: unless-stopped
+    networks:
+      - gpu-services
+    profiles:
+      - monitoring
+
+  # 日志收集
+  fluentd:
+    image: fluentd:v1.16-debian-1
+    container_name: fluentd
+    ports:
+      - "24224:24224"
+    volumes:
+      - ./config/fluentd:/fluentd/etc
+      - ./logs:/var/log
+    networks:
+      - gpu-services
+    profiles:
+      - logging
+
+volumes:
+  ollama_data:
+    driver: local
+
+networks:
+  gpu-services:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

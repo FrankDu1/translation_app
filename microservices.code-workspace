@@ -1,0 +1,53 @@
+{
+    "folders": [
+        {
+            "name": "微服务根目录",
+            "path": "."
+        },
+        {
+            "name": "Orchestrator", 
+            "path": "./services/orchestrator"
+        },
+        {
+            "name": "OCR Service",
+            "path": "./services/ocr_service" 
+        },
+        {
+            "name": "NMT Service",
+            "path": "./services/nmt_service"
+        },
+        {
+            "name": "基础设施",
+            "path": "./infra"
+        },
+        {
+            "name": "文档",
+            "path": "./docs"
+        }
+    ],
+    "settings": {
+        "python.defaultInterpreterPath": "python",
+        "python.terminal.activateEnvironment": true,
+        "files.exclude": {
+            "**/__pycache__": true,
+            "**/*.pyc": true,
+            "**/.pytest_cache": true
+        },
+        "search.exclude": {
+            "**/node_modules": true,
+            "**/__pycache__": true,
+            "**/*.pyc": true
+        }
+    },
+    "extensions": {
+        "recommendations": [
+            "ms-python.python",
+            "ms-python.vscode-pylance",
+            "ms-azuretools.vscode-docker", 
+            "github.copilot",
+            "github.copilot-chat",
+            "redhat.vscode-yaml",
+            "ms-vscode.makefile-tools"
+        ]
+    }
+}
