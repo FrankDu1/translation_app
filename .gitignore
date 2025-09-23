@@ -14,7 +14,7 @@ node_modules/
 npm-debug.log*
 
 # Environment
-.env*
+#.env*
 .DS_Store
 
 # Logs
