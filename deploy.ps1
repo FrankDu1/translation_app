@@ -98,6 +98,9 @@ Desktop.ini
         git add .
         git commit -m "Initial microservices architecture"
         
+        # 重命名为main分支 (现代Git标准)
+        git branch -M main
+        
         Write-Host "✅ Git仓库初始化完成" -ForegroundColor Green
         Write-Host "💡 请添加远程仓库: git remote add origin <your-repo-url>" -ForegroundColor Yellow
         Write-Host "💡 然后推送: git push -u origin main" -ForegroundColor Yellow
