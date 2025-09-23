@@ -15,6 +15,14 @@ npm-debug.log*
 
 # Environment
 #.env*
+.env.local
+.env.development
+.env.production
+
+# 但保留GPU配置模板
+!.env.gpu.example
+!.env.gpu
+
 .DS_Store
 
 # Logs

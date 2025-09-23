@@ -52,7 +52,7 @@ services:
       - "7020:7020"
     environment:
       - CUDA_VISIBLE_DEVICES=0
-      - OLLAMA_HOST=http://ollama:11434
+      - OLLAMA_HOST=http://host.docker.internal:11434
       - OLLAMA_MODELS=llama3.2:latest,qwen2.5:latest
       - HF_HOME=/app/models/huggingface
       - MAX_BATCH_SIZE=16
@@ -61,10 +61,8 @@ services:
       - ./models/nmt:/app/models
       - ./temp:/app/temp
       - ./logs:/app/logs
-      - ollama_data:/root/.ollama
-    depends_on:
-      ollama:
-        condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     deploy:
       resources:
         reservations:
