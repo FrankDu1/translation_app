@@ -30,13 +30,15 @@ if [ ! -f docker-compose.gpu.yml ]; then
     exit 1
 fi
 
-# 检查Ollama
-echo "🤖 检查本地Ollama..."
+# 检查Ollama服务
+echo "🤖 检查Ollama服务..."
 if curl -s http://localhost:11434/api/tags &> /dev/null; then
-    echo "✅ Ollama运行正常"
-    ollama list
+    echo "✅ Ollama服务运行正常"
+    echo "📋 当前可用模型："
+    curl -s http://localhost:11434/api/tags | grep -o '"name":"[^"]*"' | cut -d'"' -f4 || echo "  (使用API查询模型列表)"
 else
-    echo "❌ Ollama未运行，请先启动Ollama"
+    echo "❌ Ollama服务未运行，请先启动Ollama Docker容器"
+    echo "💡 确保Ollama在localhost:11434可访问"
     exit 1
 fi
 
