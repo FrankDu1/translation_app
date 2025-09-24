@@ -1,0 +1,89 @@
+version: '3.8'
+
+# GPU机器专用Docker Compose - 中国网络优化版本
+
+services:
+  # OCR服务 - 文字识别
+  ocr-service:
+    build:
+      context: ./services/ocr-service
+      dockerfile: Dockerfile.china  # 使用中国优化的Dockerfile
+    container_name: ocr-service
+    ports:
+      - "7010:7010"
+    environment:
+      - CUDA_VISIBLE_DEVICES=0
+      - PYTHONPATH=/app
+      - OCR_ENGINES=easyocr,paddleocr
+      - MODEL_CACHE_DIR=/app/models
+      - MAX_BATCH_SIZE=8
+      - WORKER_TIMEOUT=300
+    volumes:
+      - ./models/ocr:/app/models
+      - ./temp:/app/temp
+      - ./logs:/app/logs
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+        limits:
+          memory: 8G
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7010/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - gpu-services
+
+  # 翻译服务 - 机器翻译
+  nmt-service:
+    build:
+      context: ./services/nmt-service
+      dockerfile: Dockerfile.china  # 使用中国优化的Dockerfile
+    container_name: nmt-service
+    ports:
+      - "7020:7020"
+    environment:
+      - CUDA_VISIBLE_DEVICES=0
+      - OLLAMA_HOST=http://host.docker.internal:11434
+      - OLLAMA_MODELS=llama3.2:latest,qwen2.5:latest
+      - HF_HOME=/app/models/huggingface
+      - MAX_BATCH_SIZE=16
+      - TRANSLATION_TIMEOUT=180
+    volumes:
+      - ./models/nmt:/app/models
+      - ./temp:/app/temp
+      - ./logs:/app/logs
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+        limits:
+          memory: 12G
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7020/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    networks:
+      - gpu-services
+
+networks:
+  gpu-services:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
